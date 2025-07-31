@@ -28,7 +28,7 @@ class WebMoodBlasterGame:
         self.lives = 3
         self.current_target_emotion = None
         self.prompt_start_time = 0
-        self.prompt_duration = 2.0
+        self.prompt_duration = 5.0
         self.emotions = ['happy', 'neutral', 'angry']
         self.accuracy_streak = 0
         self.reaction_times = []
@@ -50,8 +50,8 @@ class WebMoodBlasterGame:
         self.current_target_emotion = random.choice(self.emotions)
         self.prompt_start_time = time.time()
         # Decrease prompt duration as level increases
-        level_modifier = max(0.1, 1.0 - (self.level - 1) * 0.1)
-        self.prompt_duration = max(0.8, 2.0 * level_modifier)
+        level_modifier = max(0.4, 1.0 - (self.level - 1) * 0.05)
+        self.prompt_duration = max(3.0, 5.0 * level_modifier)
         
     def check_emotion_match(self, detected_emotion):
         """Check if detected emotion matches target."""
