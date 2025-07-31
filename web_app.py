@@ -182,10 +182,22 @@ def analyze_frame():
                     emotion_percentages['neutral'] = max(0, (0.3 - confidence/4) * 100)
                     emotion_percentages['happy'] = max(0, (0.1 - confidence/10) * 100)
             
+            # Get face landmarks for drawing face box
+            face_landmarks = None
+            if landmarks:
+                # Convert landmarks to normalized coordinates
+                face_landmarks = []
+                for landmark in landmarks:
+                    face_landmarks.append({
+                        'x': landmark.x,
+                        'y': landmark.y
+                    })
+            
             return jsonify({
                 'emotion': emotion,
                 'confidence': confidence if confidence else 0.0,
                 'percentages': emotion_percentages,
+                'face_landmarks': face_landmarks,
                 'success': True
             })
         else:

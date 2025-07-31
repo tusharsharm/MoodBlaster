@@ -271,32 +271,20 @@
             
             <!-- Camera Section -->
             <div class="camera-section">
-                <div class="camera-controls">
-                    <button class="mode-toggle" onclick="toggleInputMode()" id="mode-toggle">Switch to Camera Mode</button>
+                <h3>Face Detection Camera</h3>
+                <div style="position: relative; display: inline-block;">
+                    <video id="webcam" width="480" height="360" autoplay muted style="border: 2px solid #fff; border-radius: 10px;"></video>
+                    <canvas id="face-overlay" width="480" height="360" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+                    <canvas id="canvas" style="display: none;"></canvas>
                 </div>
-                
-                <div id="camera-mode" class="hidden">
-                    <div class="video-container">
-                        <video id="webcam" autoplay muted></video>
-                        <canvas id="canvas" style="display: none;"></canvas>
-                    </div>
-                    <div class="camera-controls">
-                        <button class="camera-btn" onclick="startCamera()" id="start-camera">Start Camera</button>
-                        <button class="camera-btn" onclick="stopCamera()" id="stop-camera" disabled>Stop Camera</button>
-                    </div>
-                    <div class="detection-status" id="detection-status">
-                        Camera not started
-                    </div>
-                    <div class="detection-status" id="emotion-percentages" style="display: none;">
-                        <div><strong>Emotion Detection:</strong></div>
-                        <div id="happy-percent">😊 Happy: 0%</div>
-                        <div id="neutral-percent">😐 Neutral: 0%</div>
-                        <div id="angry-percent">😠 Angry: 0%</div>
-                    </div>
+                <div class="detection-status" id="detection-status">
+                    Starting camera...
                 </div>
-                
-                <div id="button-mode">
-                    <p>Click the emotion buttons to play:</p>
+                <div class="detection-status" id="emotion-percentages">
+                    <div><strong>Emotion Detection:</strong></div>
+                    <div id="happy-percent">😊 Happy: 0%</div>
+                    <div id="neutral-percent">😐 Neutral: 0%</div>
+                    <div id="angry-percent">😠 Angry: 0%</div>
                 </div>
             </div>
             
@@ -308,10 +296,8 @@
                 <div id="time-left">No time limit - take your time!</div>
             </div>
             
-            <div class="emotion-buttons">
-                <button class="emotion-btn happy-btn" onclick="submitEmotion('happy')">😊 Happy</button>
-                <button class="emotion-btn neutral-btn" onclick="submitEmotion('neutral')">😐 Neutral</button>
-                <button class="emotion-btn angry-btn" onclick="submitEmotion('angry')">😠 Angry</button>
+            <div style="color: white; text-align: center; margin: 10px 0;">
+                Camera-only mode: Show the emotion with your face!
             </div>
             
             <div id="feedback" class="feedback hidden"></div>
@@ -366,6 +352,8 @@
             .then(data => {
                 if (data.success) {
                     showScreen('game-screen');
+                    // Auto-start camera when game starts
+                    startCamera();
                     startGameLoop();
                 }
             });
@@ -489,10 +477,7 @@
                 const video = document.getElementById('webcam');
                 video.srcObject = webcamStream;
                 
-                document.getElementById('start-camera').disabled = true;
-                document.getElementById('stop-camera').disabled = false;
                 document.getElementById('detection-status').textContent = 'Camera active - analyzing emotions...';
-                document.getElementById('emotion-percentages').style.display = 'block';
                 
                 // Start emotion detection
                 startEmotionDetection();
@@ -508,10 +493,7 @@
                 webcamStream.getTracks().forEach(track => track.stop());
                 webcamStream = null;
                 
-                document.getElementById('start-camera').disabled = false;
-                document.getElementById('stop-camera').disabled = true;
                 document.getElementById('detection-status').textContent = 'Camera stopped';
-                document.getElementById('emotion-percentages').style.display = 'none';
                 
                 // Stop emotion detection
                 if (emotionDetectionInterval) {
@@ -551,6 +533,9 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Draw face detection overlay
+                drawFaceOverlay(data.face_landmarks);
+                
                 if (data.percentages) {
                     // Update emotion percentages
                     document.getElementById('happy-percent').textContent = 
@@ -573,6 +558,43 @@
                     document.getElementById('detection-status').textContent = 'Looking for face...';
                 }
             })
+            
+        function drawFaceOverlay(landmarks) {
+            const canvas = document.getElementById('face-overlay');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear previous drawings
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (landmarks && landmarks.length > 0) {
+                // Draw green bounding box around face
+                let minX = 1, maxX = 0, minY = 1, maxY = 0;
+                
+                // Find face boundaries
+                landmarks.forEach(point => {
+                    minX = Math.min(minX, point.x);
+                    maxX = Math.max(maxX, point.x);
+                    minY = Math.min(minY, point.y);
+                    maxY = Math.max(maxY, point.y);
+                });
+                
+                // Convert to canvas coordinates
+                const x = minX * canvas.width;
+                const y = minY * canvas.height;
+                const width = (maxX - minX) * canvas.width;
+                const height = (maxY - minY) * canvas.height;
+                
+                // Draw green rectangle
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x - 10, y - 10, width + 20, height + 20);
+                
+                // Add "FACE DETECTED" text
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '16px Arial';
+                ctx.fillText('FACE DETECTED', x, y - 15);
+            }
+        }
             .catch(error => {
                 console.error('Error analyzing frame:', error);
             });
