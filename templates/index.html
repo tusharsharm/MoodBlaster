@@ -533,8 +533,8 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Draw face detection overlay
-                drawFaceOverlay(data.face_landmarks);
+                // Draw face detection overlay (supports multiple faces)
+                drawFaceOverlay(data);
                 
                 if (data.percentages) {
                     // Update emotion percentages
