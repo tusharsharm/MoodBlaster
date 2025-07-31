@@ -304,10 +304,9 @@
                 Show: <span id="target-emotion">HAPPY</span>
             </div>
             
-            <div class="time-bar">
-                <div class="time-fill" id="time-fill"></div>
+            <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 10px; margin: 10px 0;">
+                <div id="time-left">No time limit - take your time!</div>
             </div>
-            <div id="time-left">3.0s</div>
             
             <div class="emotion-buttons">
                 <button class="emotion-btn happy-btn" onclick="submitEmotion('happy')">😊 Happy</button>
@@ -414,12 +413,9 @@
                 document.getElementById('target-emotion').textContent = state.target_emotion.toUpperCase();
             }
             
-            // Update time left
-            document.getElementById('time-left').textContent = state.time_left + 's';
-            
-            // Update time bar
-            const timePercent = (state.time_left / 5.0) * 100;
-            document.getElementById('time-fill').style.width = timePercent + '%';
+            // Update time left display
+            document.getElementById('time-left').textContent = 
+                typeof state.time_left === 'string' ? state.time_left : state.time_left + 's';
             
             // Check game state
             if (state.state === 'game_over') {

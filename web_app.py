@@ -75,33 +75,18 @@ class WebMoodBlasterGame:
         return False
         
     def check_timeout(self):
-        """Check if current prompt has timed out."""
-        if self.state == "playing" and self.current_target_emotion:
-            time_elapsed = time.time() - self.prompt_start_time
-            if time_elapsed > self.prompt_duration:
-                self.lives -= 1
-                self.accuracy_streak = 0
-                if self.lives <= 0:
-                    self.state = "game_over"
-                    self.game_running = False
-                else:
-                    self.generate_new_prompt()
-                return True
+        """No timeout - game continues until correct emotion is detected."""
         return False
         
     def get_game_state(self):
         """Get current game state for web interface."""
-        time_left = 0
-        if self.state == "playing" and self.current_target_emotion:
-            time_left = max(0, self.prompt_duration - (time.time() - self.prompt_start_time))
-            
         return {
             'state': self.state,
             'score': self.score,
             'level': self.level,
             'lives': self.lives,
             'target_emotion': self.current_target_emotion,
-            'time_left': round(time_left, 1),
+            'time_left': 'No limit',
             'streak': self.accuracy_streak,
             'avg_reaction_time': round(sum(self.reaction_times) / len(self.reaction_times), 2) if self.reaction_times else 0
         }
