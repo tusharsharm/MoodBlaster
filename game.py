@@ -205,12 +205,12 @@ class MoodBlasterGame:
             self.update_game()
             
             # Check for emotion match during gameplay
-            if (self.state == GameState.PLAYING and 
-                detected_emotion and 
-                self.current_target_emotion):
-                
-                if self.check_emotion_match(detected_emotion, confidence):
-                    self.generate_new_prompt()
+            if self.state == GameState.PLAYING and self.current_target_emotion and all_faces:
+                for face in all_faces:
+                    if face['emotion'] and self.check_emotion_match(face['emotion'], face['confidence']):
+                        self.generate_new_prompt()
+                        break  # Only reward one face per round
+
             
             # Render UI
             if self.state == GameState.MENU:

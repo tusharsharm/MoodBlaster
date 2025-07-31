@@ -45,24 +45,24 @@ class UIRenderer:
         
         return frame
     
-def draw_face_box(self, frame, landmarks):
-    """Draw a bounding box around detected facial landmarks."""
-    if not landmarks:
+    def draw_face_box(self, frame, landmarks):
+        """Draw a bounding box around detected facial landmarks."""
+        if not landmarks:
+            return frame
+
+        h, w = frame.shape[:2]
+        xs = [int(lm.x * w) for lm in landmarks]
+        ys = [int(lm.y * h) for lm in landmarks]
+
+        x_min, x_max = min(xs), max(xs)
+        y_min, y_max = min(ys), max(ys)
+
+        # Draw rectangle with glow effect
+        box_color = (0, 255, 0)
+        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, 2)
+        self.draw_text(frame, "FACE DETECTED", (x_min, y_min - 10), 0.6, box_color, 2)
+
         return frame
-
-    h, w = frame.shape[:2]
-    xs = [int(lm.x * w) for lm in landmarks]
-    ys = [int(lm.y * h) for lm in landmarks]
-
-    x_min, x_max = min(xs), max(xs)
-    y_min, y_max = min(ys), max(ys)
-
-    # Draw rectangle with glow effect
-    box_color = (0, 255, 0)
-    cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, 2)
-    self.draw_text(frame, "FACE DETECTED", (x_min, y_min - 10), 0.6, box_color, 2)
-
-    return frame
 
     
     def draw_emotion_icon(self, frame, emotion, position, size=80, animated=False):
@@ -218,7 +218,9 @@ def draw_face_box(self, frame, landmarks):
         
         # Draw face landmarks if available
         if landmarks:
-            self.draw_face_box(frame, landmarks)
+            for face in landmarks:
+                self.draw_face_box(frame, face['landmarks'])
+
 
         
         # Top UI bar
@@ -262,13 +264,16 @@ def draw_face_box(self, frame, landmarks):
             self.draw_text(frame, time_text, (icon_x - 20, icon_y + 105), 0.6, self.WHITE, 2)
         
         # Detected emotion display
-        if detected_emotion and confidence > 0.3:
-            detect_x = 80
-            detect_y = height - 120
-            
-            # Scale icon based on confidence
-            icon_size = int(60 + 40 * confidence)
-            self.draw_emotion_icon(frame, detected_emotion, (detect_x, detect_y), icon_size)
+        if landmarks:
+            for i, face in enumerate(landmarks):
+                emotion = face['emotion']
+                confidence = face['confidence']
+                x_offset = 80 + i * 120  # To avoid overlapping icons
+                
+                if emotion and confidence > 0.3:
+                    self.draw_emotion_icon(frame, emotion, (x_offset, height - 120), int(60 + 40 * confidence))
+                    self.draw_text(frame, f"{emotion.upper()} ({confidence:.2f})", (x_offset - 30, height - 60), 0.7, self.emotion_colors.get(emotion, self.WHITE), 2)
+        
             
             # Detection info
             detect_text = f"Detected: {detected_emotion.upper()}"
