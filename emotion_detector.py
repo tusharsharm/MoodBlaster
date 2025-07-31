@@ -12,22 +12,41 @@ class EmotionDetector:
     
     def __init__(self):
         """Initialize the emotion detector."""
-        self.mp_face_mesh = mp.solutions.face_mesh
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.mp_drawing_styles = mp.solutions.drawing_styles
+        # Initialize MediaPipe solutions with proper error handling
+        try:
+            self.mp_face_mesh = mp.solutions.face_mesh
+            self.mp_drawing = mp.solutions.drawing_utils  
+            self.mp_drawing_styles = getattr(mp.solutions, 'drawing_styles', None)
+        except Exception as e:
+            print(f"Warning: MediaPipe initialization issue: {e}")
+            self.mp_face_mesh = None
+            self.mp_drawing = None
+            self.mp_drawing_styles = None
         
-        # Initialize face mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
+        # Initialize face mesh with error handling
+        if self.mp_face_mesh:
+            try:
+                self.face_mesh = self.mp_face_mesh.FaceMesh(
+                    max_num_faces=1,
+                    refine_landmarks=True,
+                    min_detection_confidence=0.5,
+                    min_tracking_confidence=0.5
+                )
+            except Exception as e:
+                print(f"Warning: Face mesh initialization failed: {e}")
+                self.face_mesh = None
+        else:
+            self.face_mesh = None
         
-        # Initialize webcam
-        self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # Initialize webcam with fallback for environments without camera
+        self.cap = None
+        try:
+            self.cap = cv2.VideoCapture(0)
+            if self.cap.isOpened():
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        except Exception:
+            pass
         
         # Key facial landmark indices for emotion detection
         self.MOUTH_LANDMARKS = [61, 84, 17, 314, 405, 320, 308, 324, 318]
@@ -163,8 +182,11 @@ class EmotionDetector:
             emotion_scores['neutral'] += 0.3
         
         # Find dominant emotion
-        detected_emotion = max(emotion_scores, key=emotion_scores.get)
-        confidence = emotion_scores[detected_emotion]
+        if emotion_scores:
+            detected_emotion = max(emotion_scores.keys(), key=lambda x: emotion_scores[x])
+            confidence = emotion_scores[detected_emotion]
+        else:
+            return None, 0.0
         
         # Apply minimum confidence threshold
         if confidence < 0.3:
@@ -174,20 +196,26 @@ class EmotionDetector:
     
     def detect_emotion(self, frame):
         """Detect emotion from a video frame."""
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.face_mesh.process(rgb_frame)
-        
-        if results.multi_face_landmarks:
-            face_landmarks = results.multi_face_landmarks[0]
+        if not self.face_mesh or frame is None:
+            return None, 0.0, None
             
-            # Classify emotion
-            emotion, confidence = self.classify_emotion(face_landmarks.landmark, frame.shape)
+        try:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = self.face_mesh.process(rgb_frame)
             
-            return emotion, confidence, face_landmarks.landmark
+            if results and results.multi_face_landmarks:
+                face_landmarks = results.multi_face_landmarks[0]
+                
+                # Classify emotion
+                emotion, confidence = self.classify_emotion(face_landmarks.landmark, frame.shape)
+                
+                return emotion, confidence, face_landmarks.landmark
+        except Exception as e:
+            print(f"Warning: Emotion detection failed: {e}")
         
         return None, 0.0, None
     
     def cleanup(self):
         """Clean up resources."""
-        if self.cap:
+        if self.cap and hasattr(self.cap, 'release'):
             self.cap.release()

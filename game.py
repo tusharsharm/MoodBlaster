@@ -6,6 +6,7 @@ import cv2
 import time
 import random
 import math
+import numpy as np
 from emotion_detector import EmotionDetector
 from ui_renderer import UIRenderer
 
@@ -23,6 +24,10 @@ class MoodBlasterGame:
         self.emotion_detector = EmotionDetector()
         self.ui_renderer = UIRenderer()
         self.state = GameState.MENU
+        
+        # Demo mode for environments without webcam
+        self.demo_mode = False
+        self.demo_emotion = None
         
         # Game variables
         self.score = 0
@@ -131,7 +136,36 @@ class MoodBlasterGame:
                 self.start_game()
         elif key == 27:  # ESC
             return False  # Quit game
+        elif self.demo_mode:
+            # Demo mode keyboard controls
+            if key == ord('h'):
+                self.demo_emotion = 'happy'
+            elif key == ord('a'):
+                self.demo_emotion = 'angry'
+            elif key == ord('n'):
+                self.demo_emotion = 'neutral'
         return True
+    
+    def create_demo_frame(self):
+        """Create a demo frame for environments without webcam."""
+        # Create a black frame with demo text
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        
+        # Add demo mode indicators
+        cv2.putText(frame, "DEMO MODE", (250, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+        cv2.putText(frame, "Press keys to simulate emotions:", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+        cv2.putText(frame, "H = Happy, A = Angry, N = Neutral", (120, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+        
+        if self.demo_emotion:
+            cv2.putText(frame, f"Current: {self.demo_emotion.upper()}", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        
+        return frame
+    
+    def handle_demo_input(self):
+        """Handle demo mode emotion detection."""
+        if self.demo_emotion:
+            return self.demo_emotion, 0.9, None  # High confidence for demo
+        return None, 0.0, None
     
     def run(self):
         """Main game loop."""
@@ -148,17 +182,24 @@ class MoodBlasterGame:
             self.last_frame_time = current_time
             clock += 1
             
-            # Get webcam frame
-            ret, frame = self.emotion_detector.cap.read()
-            if not ret:
-                print("Error: Could not read from webcam")
-                break
-            
-            # Flip frame horizontally for mirror effect
-            frame = cv2.flip(frame, 1)
-            
-            # Detect emotion
-            detected_emotion, confidence, landmarks = self.emotion_detector.detect_emotion(frame)
+            # Get frame (webcam or demo)
+            if self.demo_mode:
+                # Create a demo frame
+                frame = self.create_demo_frame()
+                detected_emotion, confidence, landmarks = self.handle_demo_input()
+            else:
+                if self.emotion_detector.cap and self.emotion_detector.cap.isOpened():
+                    ret, frame = self.emotion_detector.cap.read()
+                    if not ret:
+                        print("Error: Could not read from webcam")
+                        break
+                    # Flip frame horizontally for mirror effect
+                    frame = cv2.flip(frame, 1)
+                    # Detect emotion
+                    detected_emotion, confidence, landmarks = self.emotion_detector.detect_emotion(frame)
+                else:
+                    print("Error: No webcam available")
+                    break
             
             # Update game logic
             self.update_game()

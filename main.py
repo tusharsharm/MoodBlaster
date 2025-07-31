@@ -15,9 +15,18 @@ def main():
         game = MoodBlasterGame()
         
         # Check if webcam is available
-        if not game.emotion_detector.cap.isOpened():
-            print("Error: Could not open webcam. Please check your camera connection.")
-            return 1
+        if not game.emotion_detector.cap or not game.emotion_detector.cap.isOpened():
+            print("Warning: No webcam detected. Running in demo mode with keyboard controls.")
+            print("Demo Controls:")
+            print("- Press 'h' for happy emotion")
+            print("- Press 'a' for angry emotion") 
+            print("- Press 'n' for neutral emotion")
+            print("- SPACE: Start game / Restart")
+            print("- ESC: Quit game")
+            game.demo_mode = True
+        else:
+            print("Webcam detected! Show facial expressions to play.")
+            game.demo_mode = False
         
         print("Starting Mood Blaster game...")
         print("Controls:")

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Blaster - Facial Expression Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .game-title {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .game-area {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 100px;
+        }
+        
+        .emotion-prompt {
+            font-size: 2.5em;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+        }
+        
+        .emotion-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .emotion-btn {
+            padding: 15px 30px;
+            font-size: 1.3em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+        
+        .emotion-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .happy-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .neutral-btn {
+            background: #9E9E9E;
+            color: white;
+        }
+        
+        .angry-btn {
+            background: #F44336;
+            color: white;
+        }
+        
+        .start-btn {
+            background: #2196F3;
+            color: white;
+            padding: 20px 40px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .start-btn:hover {
+            background: #1976D2;
+            transform: scale(1.05);
+        }
+        
+        .time-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .time-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
+            transition: width 0.1s linear;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .feedback {
+            font-size: 1.5em;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .feedback.correct {
+            background: rgba(76, 175, 80, 0.7);
+        }
+        
+        .feedback.incorrect {
+            background: rgba(244, 67, 54, 0.7);
+        }
+        
+        .hearts {
+            font-size: 1.5em;
+        }
+        
+        .heart {
+            color: #e91e63;
+            margin: 0 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="game-title">🎭 Mood Blaster</h1>
+        
+        <!-- Menu Screen -->
+        <div id="menu-screen" class="game-area">
+            <h2>Welcome to Mood Blaster!</h2>
+            <div class="instructions">
+                <p>Match your facial expressions to the prompts as quickly as possible!</p>
+                <p>Click the emotion buttons to simulate your expressions:</p>
+                <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                    <li><strong>😊 Happy:</strong> Show joy and excitement</li>
+                    <li><strong>😐 Neutral:</strong> Keep a calm, relaxed expression</li>
+                    <li><strong>😠 Angry:</strong> Show frustration or anger</li>
+                </ul>
+                <p>You have 3 lives. Match emotions quickly to score higher!</p>
+            </div>
+            <button class="start-btn" onclick="startGame()">Start Game</button>
+        </div>
+        
+        <!-- Game Screen -->
+        <div id="game-screen" class="game-area hidden">
+            <div class="stats">
+                <div class="stat-item">
+                    <div>Score</div>
+                    <div id="score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Level</div>
+                    <div id="level">1</div>
+                </div>
+                <div class="stat-item">
+                    <div>Lives</div>
+                    <div id="lives" class="hearts">❤️❤️❤️</div>
+                </div>
+                <div class="stat-item">
+                    <div>Streak</div>
+                    <div id="streak">0</div>
+                </div>
+            </div>
+            
+            <div class="emotion-prompt" id="prompt">
+                Show: <span id="target-emotion">HAPPY</span>
+            </div>
+            
+            <div class="time-bar">
+                <div class="time-fill" id="time-fill"></div>
+            </div>
+            <div id="time-left">3.0s</div>
+            
+            <div class="emotion-buttons">
+                <button class="emotion-btn happy-btn" onclick="submitEmotion('happy')">😊 Happy</button>
+                <button class="emotion-btn neutral-btn" onclick="submitEmotion('neutral')">😐 Neutral</button>
+                <button class="emotion-btn angry-btn" onclick="submitEmotion('angry')">😠 Angry</button>
+            </div>
+            
+            <div id="feedback" class="feedback hidden"></div>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="game-area hidden">
+            <h2>🎮 Game Over!</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div>Final Score</div>
+                    <div id="final-score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Level Reached</div>
+                    <div id="final-level">1</div>
+                </div>
+                <div class="stat-item">
+                    <div>Best Streak</div>
+                    <div id="final-streak">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Avg Reaction</div>
+                    <div id="avg-reaction">0.0s</div>
+                </div>
+            </div>
+            <button class="start-btn" onclick="startGame()">Play Again</button>
+            <button class="start-btn" onclick="goToMenu()" style="background: #757575; margin-left: 20px;">Menu</button>
+        </div>
+    </div>
+
+    <script>
+        let gameState = null;
+        let gameInterval = null;
+        
+        function showScreen(screenId) {
+            document.querySelectorAll('.game-area').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+        
+        function startGame() {
+            fetch('/api/start_game', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showScreen('game-screen');
+                    startGameLoop();
+                }
+            });
+        }
+        
+        function submitEmotion(emotion) {
+            fetch('/api/submit_emotion', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({emotion: emotion})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFeedback(data.match);
+                    updateGameState(data.game_state);
+                }
+            });
+        }
+        
+        function showFeedback(isCorrect) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = isCorrect ? '🎉 Correct!' : '❌ Try again!';
+            feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            feedback.classList.remove('hidden');
+            
+            setTimeout(() => {
+                feedback.classList.add('hidden');
+            }, 1000);
+        }
+        
+        function updateGameState(state) {
+            if (!state) return;
+            
+            document.getElementById('score').textContent = state.score;
+            document.getElementById('level').textContent = state.level;
+            document.getElementById('streak').textContent = state.streak;
+            
+            // Update lives
+            const hearts = '❤️'.repeat(state.lives) + '💔'.repeat(3 - state.lives);
+            document.getElementById('lives').textContent = hearts;
+            
+            // Update target emotion
+            if (state.target_emotion) {
+                document.getElementById('target-emotion').textContent = state.target_emotion.toUpperCase();
+            }
+            
+            // Update time left
+            document.getElementById('time-left').textContent = state.time_left + 's';
+            
+            // Update time bar
+            const timePercent = (state.time_left / 3.0) * 100;
+            document.getElementById('time-fill').style.width = timePercent + '%';
+            
+            // Check game state
+            if (state.state === 'game_over') {
+                document.getElementById('final-score').textContent = state.score;
+                document.getElementById('final-level').textContent = state.level;
+                document.getElementById('final-streak').textContent = state.streak;
+                document.getElementById('avg-reaction').textContent = state.avg_reaction_time + 's';
+                showScreen('game-over-screen');
+                stopGameLoop();
+            }
+        }
+        
+        function startGameLoop() {
+            gameInterval = setInterval(() => {
+                fetch('/api/game_state')
+                .then(response => response.json())
+                .then(data => {
+                    updateGameState(data);
+                });
+            }, 100);
+        }
+        
+        function stopGameLoop() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            }
+        }
+        
+        function goToMenu() {
+            fetch('/api/reset_game', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showScreen('menu-screen');
+                    stopGameLoop();
+                }
+            });
+        }
+        
+        // Initialize
+        showScreen('menu-screen');
+    </script>
+</body>
+</html>
