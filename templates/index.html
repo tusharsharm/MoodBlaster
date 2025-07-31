@@ -550,15 +550,19 @@
                     document.getElementById('detection-status').textContent = 
                         `Primary emotion: ${data.emotion} (${(data.confidence * 100).toFixed(0)}% confidence)`;
                     
-                    // Auto-submit if playing and emotion detected with high confidence
-                    if (gameState && gameState.state === 'playing' && data.confidence > 0.6) {
+                    // Auto-submit if playing and emotion detected with very high confidence
+                    if (gameState && gameState.state === 'playing' && data.confidence > 0.9) {
                         submitEmotion(data.emotion);
                     }
                 } else {
                     document.getElementById('detection-status').textContent = 'Looking for face...';
                 }
             })
-            
+            .catch(error => {
+                console.error('Error analyzing frame:', error);
+            });
+        }
+        
         function drawFaceOverlay(landmarks) {
             const canvas = document.getElementById('face-overlay');
             const ctx = canvas.getContext('2d');
@@ -595,9 +599,17 @@
                 ctx.fillText('FACE DETECTED', x, y - 15);
             }
         }
-            .catch(error => {
-                console.error('Error analyzing frame:', error);
-            });
+        
+        function goToMenu() {
+            showScreen('menu-screen');
+            stopGameLoop();
+        }
+        
+        function stopGameLoop() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            }
         }
         
         // Initialize

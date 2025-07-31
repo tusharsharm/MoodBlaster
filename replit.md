@@ -9,6 +9,7 @@ Mood Blaster is a real-time facial expression recognition game that uses compute
 Preferred communication style: Simple, everyday language.
 Game timing preference: No time limits - progress only when correct emotion is detected.
 Interface preference: Camera-only mode with automatic face detection and green bounding box around detected faces.
+Confidence threshold preference: Progress to next level when emotion detection reaches 90% confidence.
 
 ## System Architecture
 
