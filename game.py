@@ -186,7 +186,7 @@ class MoodBlasterGame:
             if self.demo_mode:
                 # Create a demo frame
                 frame = self.create_demo_frame()
-                detected_emotion, confidence, landmarks = self.handle_demo_input()
+                detected_emotion, confidence, all_faces = self.handle_demo_input()
             else:
                 if self.emotion_detector.cap and self.emotion_detector.cap.isOpened():
                     ret, frame = self.emotion_detector.cap.read()
@@ -196,7 +196,7 @@ class MoodBlasterGame:
                     # Flip frame horizontally for mirror effect
                     frame = cv2.flip(frame, 1)
                     # Detect emotion
-                    detected_emotion, confidence, landmarks = self.emotion_detector.detect_emotion(frame)
+                    detected_emotion, confidence, all_faces = self.emotion_detector.detect_emotion(frame)
                 else:
                     print("Error: No webcam available")
                     break
@@ -226,7 +226,7 @@ class MoodBlasterGame:
                     self.level,
                     self.lives,
                     time_left,
-                    landmarks,
+                    all_faces,
                     self.accuracy_streak
                 )
             elif self.state == GameState.GAME_OVER:
