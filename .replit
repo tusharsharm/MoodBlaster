@@ -1,0 +1,37 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["libGL", "libGLU"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mood Blaster Game"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "game_test"
+
+[[workflows.workflow]]
+name = "Mood Blaster Game"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install opencv-python mediapipe numpy && python main.py"
+
+[[workflows.workflow]]
+name = "game_test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install opencv-python mediapipe numpy && python main.py"
