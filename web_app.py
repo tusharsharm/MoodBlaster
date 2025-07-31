@@ -28,7 +28,7 @@ class WebMoodBlasterGame:
         self.lives = 3
         self.current_target_emotion = None
         self.prompt_start_time = 0
-        self.prompt_duration = 3.0
+        self.prompt_duration = 2.0
         self.emotions = ['happy', 'neutral', 'angry']
         self.accuracy_streak = 0
         self.reaction_times = []
@@ -50,8 +50,8 @@ class WebMoodBlasterGame:
         self.current_target_emotion = random.choice(self.emotions)
         self.prompt_start_time = time.time()
         # Decrease prompt duration as level increases
-        level_modifier = max(0.1, 1.0 - (self.level - 1) * 0.15)
-        self.prompt_duration = max(1.0, 3.0 * level_modifier)
+        level_modifier = max(0.1, 1.0 - (self.level - 1) * 0.1)
+        self.prompt_duration = max(0.8, 2.0 * level_modifier)
         
     def check_emotion_match(self, detected_emotion):
         """Check if detected emotion matches target."""
@@ -175,9 +175,32 @@ def analyze_frame():
         if emotion_detector.face_mesh:
             emotion, confidence, landmarks = emotion_detector.detect_emotion(frame)
             
+            # Calculate emotion percentages for all emotions
+            emotion_percentages = {
+                'happy': 0.0,
+                'neutral': 0.0,
+                'angry': 0.0
+            }
+            
+            if emotion and confidence:
+                # Simulate more realistic percentages based on detected emotion
+                if emotion == 'happy':
+                    emotion_percentages['happy'] = confidence * 100
+                    emotion_percentages['neutral'] = max(0, (0.5 - confidence/2) * 100)
+                    emotion_percentages['angry'] = max(0, (0.2 - confidence/5) * 100)
+                elif emotion == 'neutral':
+                    emotion_percentages['neutral'] = confidence * 100
+                    emotion_percentages['happy'] = max(0, (0.4 - confidence/3) * 100)
+                    emotion_percentages['angry'] = max(0, (0.3 - confidence/4) * 100)
+                elif emotion == 'angry':
+                    emotion_percentages['angry'] = confidence * 100
+                    emotion_percentages['neutral'] = max(0, (0.3 - confidence/4) * 100)
+                    emotion_percentages['happy'] = max(0, (0.1 - confidence/10) * 100)
+            
             return jsonify({
                 'emotion': emotion,
                 'confidence': confidence if confidence else 0.0,
+                'percentages': emotion_percentages,
                 'success': True
             })
         else:

@@ -287,6 +287,12 @@
                     <div class="detection-status" id="detection-status">
                         Camera not started
                     </div>
+                    <div class="detection-status" id="emotion-percentages" style="display: none;">
+                        <div><strong>Emotion Detection:</strong></div>
+                        <div id="happy-percent">😊 Happy: 0%</div>
+                        <div id="neutral-percent">😐 Neutral: 0%</div>
+                        <div id="angry-percent">😠 Angry: 0%</div>
+                    </div>
                 </div>
                 
                 <div id="button-mode">
@@ -412,7 +418,7 @@
             document.getElementById('time-left').textContent = state.time_left + 's';
             
             // Update time bar
-            const timePercent = (state.time_left / 3.0) * 100;
+            const timePercent = (state.time_left / 2.0) * 100;
             document.getElementById('time-fill').style.width = timePercent + '%';
             
             // Check game state
@@ -490,6 +496,7 @@
                 document.getElementById('start-camera').disabled = true;
                 document.getElementById('stop-camera').disabled = false;
                 document.getElementById('detection-status').textContent = 'Camera active - analyzing emotions...';
+                document.getElementById('emotion-percentages').style.display = 'block';
                 
                 // Start emotion detection
                 startEmotionDetection();
@@ -508,6 +515,7 @@
                 document.getElementById('start-camera').disabled = false;
                 document.getElementById('stop-camera').disabled = true;
                 document.getElementById('detection-status').textContent = 'Camera stopped';
+                document.getElementById('emotion-percentages').style.display = 'none';
                 
                 // Stop emotion detection
                 if (emotionDetectionInterval) {
@@ -522,7 +530,7 @@
             
             emotionDetectionInterval = setInterval(() => {
                 captureAndAnalyzeFrame();
-            }, 500); // Analyze every 500ms
+            }, 200); // Analyze every 200ms for faster response
         }
         
         function captureAndAnalyzeFrame() {
@@ -547,16 +555,26 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.emotion && data.confidence > 0.6) {
+                if (data.percentages) {
+                    // Update emotion percentages
+                    document.getElementById('happy-percent').textContent = 
+                        `😊 Happy: ${Math.round(data.percentages.happy)}%`;
+                    document.getElementById('neutral-percent').textContent = 
+                        `😐 Neutral: ${Math.round(data.percentages.neutral)}%`;
+                    document.getElementById('angry-percent').textContent = 
+                        `😠 Angry: ${Math.round(data.percentages.angry)}%`;
+                }
+                
+                if (data.emotion && data.confidence > 0.5) {
                     document.getElementById('detection-status').textContent = 
-                        `Detected: ${data.emotion} (${(data.confidence * 100).toFixed(0)}% confidence)`;
+                        `Primary emotion: ${data.emotion} (${(data.confidence * 100).toFixed(0)}% confidence)`;
                     
                     // Auto-submit if playing and emotion detected with high confidence
-                    if (gameState && gameState.state === 'playing' && data.confidence > 0.7) {
+                    if (gameState && gameState.state === 'playing' && data.confidence > 0.6) {
                         submitEmotion(data.emotion);
                     }
                 } else {
-                    document.getElementById('detection-status').textContent = 'Looking for emotions...';
+                    document.getElementById('detection-status').textContent = 'Looking for face...';
                 }
             })
             .catch(error => {
