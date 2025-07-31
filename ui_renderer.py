@@ -45,6 +45,26 @@ class UIRenderer:
         
         return frame
     
+def draw_face_box(self, frame, landmarks):
+    """Draw a bounding box around detected facial landmarks."""
+    if not landmarks:
+        return frame
+
+    h, w = frame.shape[:2]
+    xs = [int(lm.x * w) for lm in landmarks]
+    ys = [int(lm.y * h) for lm in landmarks]
+
+    x_min, x_max = min(xs), max(xs)
+    y_min, y_max = min(ys), max(ys)
+
+    # Draw rectangle with glow effect
+    box_color = (0, 255, 0)
+    cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, 2)
+    self.draw_text(frame, "FACE DETECTED", (x_min, y_min - 10), 0.6, box_color, 2)
+
+    return frame
+
+    
     def draw_emotion_icon(self, frame, emotion, position, size=80, animated=False):
         """Draw an emotion icon using geometric shapes."""
         x, y = position
@@ -198,10 +218,8 @@ class UIRenderer:
         
         # Draw face landmarks if available
         if landmarks:
-            for landmark in landmarks:
-                x = int(landmark.x * width)
-                y = int(landmark.y * height)
-                cv2.circle(frame, (x, y), 1, self.GREEN, -1)
+            self.draw_face_box(frame, landmarks)
+
         
         # Top UI bar
         ui_height = 100
@@ -276,6 +294,17 @@ class UIRenderer:
             urgent_color = (0, 0, pulse) if target_emotion == 'angry' else (0, pulse, 0) if target_emotion == 'happy' else (pulse, pulse, 0)
             
             self.draw_text(frame, urgent_text, (urgent_x, urgent_y), 1.5, urgent_color, 3)
+
+        if detected_emotion:
+         self.draw_text(
+             frame, 
+             f"{detected_emotion.upper()} ({confidence:.2f})", 
+             (20, height - 20), 
+             0.7, 
+             self.emotion_colors.get(detected_emotion, self.WHITE), 
+             2
+         )
+
         
         return frame
     

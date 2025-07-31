@@ -233,7 +233,24 @@ class EmotionDetector:
             print(f"Warning: Emotion detection failed: {e}")
         
         return None, 0.0, []
+
+
+def draw_face_boxes(self, frame, all_landmarks):
+    """Draw bounding boxes around detected faces."""
+    h, w = frame.shape[:2]
     
+    for face_landmarks in all_landmarks:
+        xs = [int(lm.x * w) for lm in face_landmarks]
+        ys = [int(lm.y * h) for lm in face_landmarks]
+        
+        if xs and ys:
+            x_min, x_max = min(xs), max(xs)
+            y_min, y_max = min(ys), max(ys)
+            
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
+            cv2.putText(frame, "FACE DETECTED", (x_min, y_min - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
     def cleanup(self):
         """Clean up resources."""
         if self.cap and hasattr(self.cap, 'release'):

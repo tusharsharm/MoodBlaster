@@ -1,6 +1,6 @@
 # Mood Blaster - Webcam Facial Expression Game
 
-A real-time facial expression recognition game that uses computer vision to detect emotions through your webcam. Challenge yourself to match prompted emotions using your facial expressions!
+Mood Blaster turns your face into a joystick. Match expressions with webcam-detected emotions in a no-pressure, AI-powered game that runs right in your browser. Built with Flask, MediaPipe, and pure good vibes.
 
 ## Features
 
