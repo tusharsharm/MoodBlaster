@@ -550,8 +550,8 @@
                     document.getElementById('detection-status').textContent = 
                         `Primary emotion: ${data.emotion} (${(data.confidence * 100).toFixed(0)}% confidence)`;
                     
-                    // Auto-submit if playing and emotion detected with very high confidence
-                    if (gameState && gameState.state === 'playing' && data.confidence > 0.9) {
+                    // Auto-submit if playing and emotion detected with good confidence
+                    if (gameState && gameState.state === 'playing' && data.confidence > 0.6) {
                         submitEmotion(data.emotion);
                     }
                 } else {
@@ -563,40 +563,59 @@
             });
         }
         
-        function drawFaceOverlay(landmarks) {
+        function drawFaceOverlay(data) {
             const canvas = document.getElementById('face-overlay');
             const ctx = canvas.getContext('2d');
             
             // Clear previous drawings
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            if (landmarks && landmarks.length > 0) {
-                // Draw green bounding box around face
-                let minX = 1, maxX = 0, minY = 1, maxY = 0;
-                
-                // Find face boundaries
-                landmarks.forEach(point => {
-                    minX = Math.min(minX, point.x);
-                    maxX = Math.max(maxX, point.x);
-                    minY = Math.min(minY, point.y);
-                    maxY = Math.max(maxY, point.y);
+            // Handle multiple faces if available
+            const allFaces = data.all_faces || (data.face_landmarks ? [data.face_landmarks] : []);
+            
+            if (allFaces && allFaces.length > 0) {
+                allFaces.forEach((landmarks, faceIndex) => {
+                    if (landmarks && landmarks.length > 0) {
+                        // Draw green bounding box around each face
+                        let minX = 1, maxX = 0, minY = 1, maxY = 0;
+                        
+                        // Find face boundaries
+                        landmarks.forEach(point => {
+                            minX = Math.min(minX, point.x);
+                            maxX = Math.max(maxX, point.x);
+                            minY = Math.min(minY, point.y);
+                            maxY = Math.max(maxY, point.y);
+                        });
+                        
+                        // Convert to canvas coordinates
+                        const x = minX * canvas.width;
+                        const y = minY * canvas.height;
+                        const width = (maxX - minX) * canvas.width;
+                        const height = (maxY - minY) * canvas.height;
+                        
+                        // Use different colors for multiple faces
+                        const colors = ['#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ff8000'];
+                        const color = colors[faceIndex % colors.length];
+                        
+                        // Draw colored rectangle
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x - 10, y - 10, width + 20, height + 20);
+                        
+                        // Add face detection text
+                        ctx.fillStyle = color;
+                        ctx.font = '16px Arial';
+                        const text = allFaces.length > 1 ? `FACE ${faceIndex + 1} DETECTED` : 'FACE DETECTED';
+                        ctx.fillText(text, x, y - 15);
+                    }
                 });
                 
-                // Convert to canvas coordinates
-                const x = minX * canvas.width;
-                const y = minY * canvas.height;
-                const width = (maxX - minX) * canvas.width;
-                const height = (maxY - minY) * canvas.height;
-                
-                // Draw green rectangle
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(x - 10, y - 10, width + 20, height + 20);
-                
-                // Add "FACE DETECTED" text
-                ctx.fillStyle = '#00ff00';
-                ctx.font = '16px Arial';
-                ctx.fillText('FACE DETECTED', x, y - 15);
+                // Show face count if multiple faces
+                if (allFaces.length > 1) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText(`${allFaces.length} FACES DETECTED`, 10, 30);
+                }
             }
         }
         

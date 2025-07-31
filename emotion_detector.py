@@ -27,7 +27,7 @@ class EmotionDetector:
         if self.mp_face_mesh:
             try:
                 self.face_mesh = self.mp_face_mesh.FaceMesh(
-                    max_num_faces=1,
+                    max_num_faces=5,
                     refine_landmarks=True,
                     min_detection_confidence=0.5,
                     min_tracking_confidence=0.5
@@ -195,25 +195,44 @@ class EmotionDetector:
         return detected_emotion, min(confidence, 1.0)
     
     def detect_emotion(self, frame):
-        """Detect emotion from a video frame."""
+        """Detect emotion from a video frame, supporting multiple faces."""
         if not self.face_mesh or frame is None:
-            return None, 0.0, None
+            return None, 0.0, []
             
         try:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = self.face_mesh.process(rgb_frame)
             
             if results and results.multi_face_landmarks:
-                face_landmarks = results.multi_face_landmarks[0]
+                all_faces = []
+                best_emotion = None
+                best_confidence = 0.0
                 
-                # Classify emotion
-                emotion, confidence = self.classify_emotion(face_landmarks.landmark, frame.shape)
+                # Process all detected faces
+                for face_landmarks in results.multi_face_landmarks:
+                    emotion, confidence = self.classify_emotion(face_landmarks.landmark, frame.shape)
+                    
+                    # Store face data
+                    face_data = {
+                        'landmarks': face_landmarks.landmark,
+                        'emotion': emotion,
+                        'confidence': confidence
+                    }
+                    all_faces.append(face_data)
+                    
+                    # Track the most confident emotion
+                    if confidence > best_confidence:
+                        best_emotion = emotion
+                        best_confidence = confidence
                 
-                return emotion, confidence, face_landmarks.landmark
+                # Return best emotion and all face landmarks
+                all_landmarks = [face['landmarks'] for face in all_faces]
+                return best_emotion, best_confidence, all_landmarks
+                
         except Exception as e:
             print(f"Warning: Emotion detection failed: {e}")
         
-        return None, 0.0, None
+        return None, 0.0, []
     
     def cleanup(self):
         """Clean up resources."""

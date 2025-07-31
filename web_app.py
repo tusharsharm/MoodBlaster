@@ -156,9 +156,9 @@ def analyze_frame():
         # Convert PIL image to OpenCV format
         frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         
-        # Detect emotion using our emotion detector
+        # Detect emotion using our emotion detector (now supports multiple faces)
         if emotion_detector.face_mesh:
-            emotion, confidence, landmarks = emotion_detector.detect_emotion(frame)
+            emotion, confidence, all_landmarks = emotion_detector.detect_emotion(frame)
             
             # Calculate emotion percentages for all emotions
             emotion_percentages = {
@@ -182,22 +182,26 @@ def analyze_frame():
                     emotion_percentages['neutral'] = max(0, (0.3 - confidence/4) * 100)
                     emotion_percentages['happy'] = max(0, (0.1 - confidence/10) * 100)
             
-            # Get face landmarks for drawing face box
-            face_landmarks = None
-            if landmarks:
-                # Convert landmarks to normalized coordinates
-                face_landmarks = []
-                for landmark in landmarks:
-                    face_landmarks.append({
-                        'x': landmark.x,
-                        'y': landmark.y
-                    })
+            # Get face landmarks for drawing face boxes (supports multiple faces)
+            all_face_landmarks = []
+            if all_landmarks:
+                # Process all detected faces
+                for face_landmarks in all_landmarks:
+                    face_data = []
+                    for landmark in face_landmarks:
+                        face_data.append({
+                            'x': landmark.x,
+                            'y': landmark.y
+                        })
+                    all_face_landmarks.append(face_data)
             
             return jsonify({
                 'emotion': emotion,
                 'confidence': confidence if confidence else 0.0,
                 'percentages': emotion_percentages,
-                'face_landmarks': face_landmarks,
+                'face_landmarks': all_face_landmarks[0] if all_face_landmarks else None,
+                'all_faces': all_face_landmarks,
+                'face_count': len(all_face_landmarks),
                 'success': True
             })
         else:
