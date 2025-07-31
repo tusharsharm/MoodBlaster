@@ -141,6 +141,70 @@
             border-radius: 5px;
         }
         
+        .camera-section {
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        #webcam {
+            width: 320px;
+            height: 240px;
+            border-radius: 15px;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+        
+        .camera-controls {
+            margin: 15px 0;
+        }
+        
+        .camera-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-size: 1em;
+        }
+        
+        .camera-btn:hover {
+            background: #45a049;
+        }
+        
+        .camera-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .detection-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .mode-toggle {
+            background: #FF9800;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 1em;
+        }
+        
         .feedback.correct {
             background: rgba(76, 175, 80, 0.7);
         }
@@ -168,11 +232,16 @@
             <h2>Welcome to Mood Blaster!</h2>
             <div class="instructions">
                 <p>Match your facial expressions to the prompts as quickly as possible!</p>
-                <p>Click the emotion buttons to simulate your expressions:</p>
+                <p><strong>Two ways to play:</strong></p>
+                <ul style="text-align: left; max-width: 500px; margin: 0 auto;">
+                    <li><strong>🎮 Button Mode:</strong> Click emotion buttons to simulate expressions</li>
+                    <li><strong>📷 Camera Mode:</strong> Use your webcam for real facial expression detection!</li>
+                </ul>
+                <p><strong>Emotions to practice:</strong></p>
                 <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-                    <li><strong>😊 Happy:</strong> Show joy and excitement</li>
+                    <li><strong>😊 Happy:</strong> Smile and show joy</li>
                     <li><strong>😐 Neutral:</strong> Keep a calm, relaxed expression</li>
-                    <li><strong>😠 Angry:</strong> Show frustration or anger</li>
+                    <li><strong>😠 Angry:</strong> Frown or show frustration</li>
                 </ul>
                 <p>You have 3 lives. Match emotions quickly to score higher!</p>
             </div>
@@ -197,6 +266,31 @@
                 <div class="stat-item">
                     <div>Streak</div>
                     <div id="streak">0</div>
+                </div>
+            </div>
+            
+            <!-- Camera Section -->
+            <div class="camera-section">
+                <div class="camera-controls">
+                    <button class="mode-toggle" onclick="toggleInputMode()" id="mode-toggle">Switch to Camera Mode</button>
+                </div>
+                
+                <div id="camera-mode" class="hidden">
+                    <div class="video-container">
+                        <video id="webcam" autoplay muted></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="camera-btn" onclick="startCamera()" id="start-camera">Start Camera</button>
+                        <button class="camera-btn" onclick="stopCamera()" id="stop-camera" disabled>Stop Camera</button>
+                    </div>
+                    <div class="detection-status" id="detection-status">
+                        Camera not started
+                    </div>
+                </div>
+                
+                <div id="button-mode">
+                    <p>Click the emotion buttons to play:</p>
                 </div>
             </div>
             
@@ -247,6 +341,9 @@
     <script>
         let gameState = null;
         let gameInterval = null;
+        let webcamStream = null;
+        let isUsingCamera = false;
+        let emotionDetectionInterval = null;
         
         function showScreen(screenId) {
             document.querySelectorAll('.game-area').forEach(screen => {
@@ -357,6 +454,113 @@
                     showScreen('menu-screen');
                     stopGameLoop();
                 }
+            });
+        }
+        
+        function toggleInputMode() {
+            const cameraMode = document.getElementById('camera-mode');
+            const buttonMode = document.getElementById('button-mode');
+            const modeToggle = document.getElementById('mode-toggle');
+            
+            if (isUsingCamera) {
+                // Switch to button mode
+                stopCamera();
+                cameraMode.classList.add('hidden');
+                buttonMode.classList.remove('hidden');
+                modeToggle.textContent = 'Switch to Camera Mode';
+                isUsingCamera = false;
+            } else {
+                // Switch to camera mode
+                cameraMode.classList.remove('hidden');
+                buttonMode.classList.add('hidden');
+                modeToggle.textContent = 'Switch to Button Mode';
+                isUsingCamera = true;
+            }
+        }
+        
+        async function startCamera() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 320, height: 240 } 
+                });
+                
+                const video = document.getElementById('webcam');
+                video.srcObject = webcamStream;
+                
+                document.getElementById('start-camera').disabled = true;
+                document.getElementById('stop-camera').disabled = false;
+                document.getElementById('detection-status').textContent = 'Camera active - analyzing emotions...';
+                
+                // Start emotion detection
+                startEmotionDetection();
+                
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                document.getElementById('detection-status').textContent = 'Error: Could not access camera';
+            }
+        }
+        
+        function stopCamera() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+                
+                document.getElementById('start-camera').disabled = false;
+                document.getElementById('stop-camera').disabled = true;
+                document.getElementById('detection-status').textContent = 'Camera stopped';
+                
+                // Stop emotion detection
+                if (emotionDetectionInterval) {
+                    clearInterval(emotionDetectionInterval);
+                    emotionDetectionInterval = null;
+                }
+            }
+        }
+        
+        function startEmotionDetection() {
+            if (!webcamStream) return;
+            
+            emotionDetectionInterval = setInterval(() => {
+                captureAndAnalyzeFrame();
+            }, 500); // Analyze every 500ms
+        }
+        
+        function captureAndAnalyzeFrame() {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw current frame to canvas
+            ctx.drawImage(video, 0, 0);
+            
+            // Convert to base64 and send for analysis
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            fetch('/api/analyze_frame', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({image: imageData})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.emotion && data.confidence > 0.6) {
+                    document.getElementById('detection-status').textContent = 
+                        `Detected: ${data.emotion} (${(data.confidence * 100).toFixed(0)}% confidence)`;
+                    
+                    // Auto-submit if playing and emotion detected with high confidence
+                    if (gameState && gameState.state === 'playing' && data.confidence > 0.7) {
+                        submitEmotion(data.emotion);
+                    }
+                } else {
+                    document.getElementById('detection-status').textContent = 'Looking for emotions...';
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing frame:', error);
             });
         }
         

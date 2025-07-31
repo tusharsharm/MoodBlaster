@@ -14,6 +14,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 import threading
+from emotion_detector import EmotionDetector
 
 app = Flask(__name__)
 
@@ -105,8 +106,9 @@ class WebMoodBlasterGame:
             'avg_reaction_time': round(sum(self.reaction_times) / len(self.reaction_times), 2) if self.reaction_times else 0
         }
 
-# Global game instance
+# Global game instance and emotion detector
 game = WebMoodBlasterGame()
+emotion_detector = EmotionDetector()
 
 @app.route('/')
 def index():
@@ -147,6 +149,57 @@ def reset_game():
     game.state = "menu"
     game.game_running = False
     return jsonify({'success': True})
+
+@app.route('/api/analyze_frame', methods=['POST'])
+def analyze_frame():
+    """Analyze a camera frame for emotion detection."""
+    try:
+        data = request.get_json()
+        image_data = data.get('image')
+        
+        if not image_data:
+            return jsonify({'error': 'No image data provided'})
+        
+        # Remove data URL prefix
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        # Decode base64 image
+        image_bytes = base64.b64decode(image_data)
+        image = Image.open(BytesIO(image_bytes))
+        
+        # Convert PIL image to OpenCV format
+        frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        
+        # Detect emotion using our emotion detector
+        if emotion_detector.face_mesh:
+            emotion, confidence, landmarks = emotion_detector.detect_emotion(frame)
+            
+            return jsonify({
+                'emotion': emotion,
+                'confidence': confidence if confidence else 0.0,
+                'success': True
+            })
+        else:
+            # Fallback: simple mock detection based on current time for demo
+            emotions = ['happy', 'neutral', 'angry']
+            mock_emotion = emotions[int(time.time()) % len(emotions)]
+            
+            return jsonify({
+                'emotion': mock_emotion,
+                'confidence': 0.5,
+                'success': True,
+                'note': 'MediaPipe not available, using demo mode'
+            })
+            
+    except Exception as e:
+        print(f"Error analyzing frame: {e}")
+        return jsonify({
+            'error': 'Frame analysis failed',
+            'emotion': None,
+            'confidence': 0.0,
+            'success': False
+        })
 
 if __name__ == '__main__':
     # Create templates directory and files
